@@ -1,5 +1,13 @@
 # Solum
 
+Este projeto foi desenvolvido como parte das atividades da disciplina Gestão de Processos e Resultados na Produção do Café, sob orientação da tutora Marcela Pereira.
+
+A aplicação foi elaborada com o apoio de ferramentas de Inteligência Artificial e com base em conceitos de programação orientada a especificações, buscando transformar requisitos técnicos e agronômicos em funcionalidades de software.
+
+As interpretações e recomendações apresentadas possuem caráter acadêmico e informativo, não substituindo a avaliação de um profissional habilitado em Agronomia.
+
+## Sobre o projeto Solum
+
 Aplicacao web PHP para cadastro, interpretacao e acompanhamento de analises de fertilidade do solo.
 
 O projeto possui:
