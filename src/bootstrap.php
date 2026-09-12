@@ -129,6 +129,7 @@ function renderHeader(string $title): void
             th { background: #f3f4f6; }
             .table-wrap { overflow-x: auto; }
             small { color: #4b5563; font-weight: 400; }
+            footer { margin-top: 1.5rem; text-align: center; }
         </style>
     </head>
     <body>
@@ -150,6 +151,9 @@ function renderFooter(): void
 {
     ?>
         </main>
+        <footer>
+            Feito com ❤️ ☕ pela equipe <a href="equipe.php">Solus</a>
+        </footer>
     </body>
     </html>
     <?php
