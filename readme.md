@@ -178,10 +178,10 @@ DB_PASS='SENHA_FORTE' \
 php -S 0.0.0.0:8088 -t /var/www/solum
 ```
 
-Se o IP da VM for `192.168.185.8`, acesse:
+Se o IP da VM for `192.168.185.251`, acesse:
 
 ```text
-http://192.168.185.8:8088/dashboard.php
+http://192.168.185.251:8088/dashboard.php
 ```
 
 Verifique se a porta esta escutando:
@@ -193,7 +193,7 @@ ss -ltnp | grep ':8088'
 Se a rede nao permitir acesso direto, use tunel SSH a partir da sua maquina local:
 
 ```bash
-ssh -L 8088:127.0.0.1:8088 usuario@192.168.185.8
+ssh -L 8088:127.0.0.1:8088 usuario@192.168.185.251
 ```
 
 Depois acesse:
