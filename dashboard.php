@@ -61,7 +61,7 @@ $propertyLabels = array_keys($propertyStats);
 $propertyCritical = array_map(static fn (array $item): int => $item['criticos'], array_values($propertyStats));
 $propertyTotal = array_map(static fn (array $item): int => $item['total'], array_values($propertyStats));
 
-renderHeader('Dashboard de fertilidade');
+renderHeader('Painel de Gestão de fertilidade');
 ?>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>

@@ -134,7 +134,7 @@ function renderHeader(string $title): void
     </head>
     <body>
         <nav aria-label="Navegacao principal">
-            <a href="dashboard.php">Dashboard</a>
+            <a href="dashboard.php">Painel de Gestão</a>
             <a href="propriedades.php">Propriedades</a>
             <a href="talhoes.php">Talhoes</a>
             <a href="analises_solo.php">Analises de solo</a>

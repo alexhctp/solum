@@ -15,7 +15,7 @@ O projeto possui:
 - Cadastro de propriedades, talhoes e analises de solo.
 - Interpretacao de SB, CTC a pH 7, V%, necessidade de calagem e relacao Ca:Mg.
 - Alertas de antagonismo K x Mg e recomendacao de parcelamento de K em CTC baixa.
-- Dashboard com indicadores e graficos.
+- Painel de Gestão com indicadores e graficos.
 - Laudo tecnico para impressao ou exportacao em PDF.
 - MySQL com chaves estrangeiras, indices e restricoes de integridade.
 
