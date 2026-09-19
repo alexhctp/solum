@@ -5,6 +5,7 @@ declare(strict_types=1);
 final class Database
 {
     private static ?PDO $connection = null;
+    private static bool $environmentLoaded = false;
 
     public static function connection(): PDO
     {
@@ -42,6 +43,7 @@ final class Database
 
     private static function environment(string $key, ?string $default = null): string
     {
+        self::loadEnvironmentFile();
         $value = getenv($key);
 
         if ($value === false || $value === '') {
@@ -53,5 +55,42 @@ final class Database
         }
 
         return $value;
+    }
+
+    private static function loadEnvironmentFile(): void
+    {
+        if (self::$environmentLoaded) {
+            return;
+        }
+
+        self::$environmentLoaded = true;
+        $file = dirname(__DIR__) . '/.env';
+        if (!is_readable($file)) {
+            return;
+        }
+
+        foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                continue;
+            }
+
+            [$name, $value] = explode('=', $line, 2);
+            $name = trim($name);
+            $value = trim($value);
+            if ($name === '' || getenv($name) !== false) {
+                continue;
+            }
+
+            if (
+                strlen($value) >= 2
+                && (($value[0] === '"' && $value[strlen($value) - 1] === '"')
+                    || ($value[0] === "'" && $value[strlen($value) - 1] === "'"))
+            ) {
+                $value = substr($value, 1, -1);
+            }
+
+            putenv($name . '=' . $value);
+        }
     }
 }

@@ -49,7 +49,8 @@ ON DUPLICATE KEY UPDATE
     perfil = VALUES(perfil);
 
 INSERT INTO tecnico_cliente (tecnico_id, cliente_id) VALUES
-    (2, 3)
+    (2, 3),
+    (2, 4)
 ON DUPLICATE KEY UPDATE tecnico_id = VALUES(tecnico_id);
 
 INSERT INTO propriedades (id, proprietario_id, nome, produtor, cidade, uf, area_total, cultura_principal) VALUES

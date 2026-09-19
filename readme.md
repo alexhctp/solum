@@ -41,9 +41,14 @@ Git 2.47.3
 ```text
 .
 ├── analises_solo.php          # CRUD de analises de solo
-├── propriedades.php          # CRUD de propriedades
+├── login.php                  # Autenticacao
+├── logout.php                 # Encerramento da sessao
+├── dashboard.php             # Painel e escopo RBAC
+├── cadastro_usuario.php      # Cadastro de usuarios e vinculos
+├── cadastro_propriedade.php  # Cadastro de propriedades
+├── propriedades.php          # Atalho para cadastro de propriedades
 ├── talhoes.php               # CRUD de talhoes
-├── dashboard.php             # Painel de indicadores
+├── auth.php                  # Protecao e regras de escopo
 ├── relatorio_laudo.php       # Laudo individual para impressao/PDF
 ├── config/
 │   └── database.php           # Conexao PDO
@@ -99,10 +104,16 @@ mysql -u root -p < database/schema.sql
 
 O script cria o banco `solum` com as tabelas:
 
+- `usuarios`
+- `tecnico_cliente`
 - `propriedades`
 - `talhoes`
 - `analises_solo`
 - `recomendacoes`
+
+O mesmo script carrega dados de teste: um administrador, um tecnico, dois
+proprietarios, dois vinculos tecnico-cliente e duas propriedades. A senha de
+todos os usuarios de teste e `Solum@123`.
 
 ### 4. Criar o usuario da aplicacao
 
@@ -159,11 +170,31 @@ http://127.0.0.1:8088/dashboard.php
 
 Paginas principais:
 
+- `login.php`: entrada da aplicacao.
 - `dashboard.php`: indicadores, graficos e alertas.
-- `propriedades.php`: cadastro de propriedades.
+- `cadastro_usuario.php`: cadastro de usuarios e vinculo opcional de tecnicos.
+- `cadastro_propriedade.php`: cadastro com proprietario escolhido por admin/tecnico ou automatico para proprietario.
+- `propriedades.php`: redirecionamento para o cadastro de propriedades.
 - `talhoes.php`: cadastro de talhoes vinculados a propriedades.
 - `analises_solo.php`: cadastro de resultados da analise.
 - `relatorio_laudo.php?analise_id=1`: laudo de uma analise existente.
+
+## Testar autenticacao e RBAC
+
+Depois de iniciar o servidor, acesse `http://127.0.0.1:8088/login.php` com
+uma destas contas:
+
+| Perfil | E-mail |
+| --- | --- |
+| Admin | `admin@solum.test` |
+| Tecnico | `tecnico@solum.test` |
+| Proprietario | `carlos@solum.test` ou `marina@solum.test` |
+
+Use `Solum@123` como senha. O administrador visualiza todos os usuarios e
+propriedades e pode cadastrar usuarios. O tecnico visualiza apenas os dois
+proprietarios vinculados e suas propriedades. Cada proprietario visualiza
+somente seus proprios dados e propriedades; ao cadastrar uma propriedade, o
+vinculo e feito automaticamente pelo usuario da sessao.
 
 ## Acesso remoto pela rede
 
