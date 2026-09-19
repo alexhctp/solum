@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($errors === []) {
-            if (!userCanAccessProperty($pdo, $talhaoId === null ? 0 : (int) $propriedadeId)) {
+            if ($propriedadeId === null || !userCanAccessProperty($pdo, $propriedadeId)) {
                 $errors['propriedade_id'] = 'A propriedade selecionada nao existe.';
             }
         }
@@ -94,18 +94,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($editing === null && isset($_GET['edit']) && ctype_digit((string) $_GET['edit'])) {
-    $statement = $pdo->prepare('SELECT * FROM talhoes WHERE id = :id');
-    $statement->execute(['id' => (int) $_GET['edit']]);
+    $statement = $pdo->prepare(
+        'SELECT t.*
+         FROM talhoes t
+         INNER JOIN propriedades p ON p.id = t.propriedade_id
+         WHERE t.id = :id AND ' . propriedadeScope('p')['sql']
+    );
+    $scope = propriedadeScope('p');
+    $statement->execute(['id' => (int) $_GET['edit']] + $scope['params']);
     $editing = $statement->fetch() ?: null;
 }
 
-$properties = $pdo->query('SELECT id, nome, produtor FROM propriedades ORDER BY nome, produtor')->fetchAll();
-$plots = $pdo->query(
+$scope = propriedadeScope('p');
+$propertiesStatement = $pdo->prepare(
+    'SELECT p.id, p.nome, p.produtor
+     FROM propriedades p
+     WHERE ' . $scope['sql'] . '
+     ORDER BY p.nome, p.produtor'
+);
+$propertiesStatement->execute($scope['params']);
+$properties = $propertiesStatement->fetchAll();
+$plotsStatement = $pdo->prepare(
     'SELECT t.*, p.nome AS propriedade_nome
      FROM talhoes t
      INNER JOIN propriedades p ON p.id = t.propriedade_id
+     WHERE ' . $scope['sql'] . '
      ORDER BY p.nome, t.identificacao'
-)->fetchAll();
+);
+$plotsStatement->execute($scope['params']);
+$plots = $plotsStatement->fetchAll();
 renderHeader($editing !== null ? 'Editar talhao' : 'Cadastrar talhao');
 ?>
 <form method="post" novalidate>

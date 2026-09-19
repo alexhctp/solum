@@ -15,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = postId('id', $errors, 'um identificador valido');
         if ($id !== null) {
+            if (!userCanAccessAnalise($pdo, $id)) {
+                denyAccess();
+            }
             $statement = $pdo->prepare('DELETE FROM analises_solo WHERE id = :id');
             $statement->execute(['id' => $id]);
             flash('success', 'Analise excluida.');
@@ -50,10 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($errors === []) {
-            $plotCheck = $pdo->prepare('SELECT id FROM talhoes WHERE id = :id');
-            $plotCheck->execute(['id' => $talhaoId]);
-            if (!$plotCheck->fetchColumn()) {
+            if ($talhaoId === null || !userCanAccessTalhao($pdo, $talhaoId)) {
                 $errors['talhao_id'] = 'O talhao selecionado nao existe.';
+            }
+        }
+
+        if ($id !== '' && ctype_digit($id) && (int) $id > 0 && $errors === []) {
+            if (!userCanAccessAnalise($pdo, (int) $id)) {
+                denyAccess();
             }
         }
 
@@ -110,24 +117,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($editing === null && isset($_GET['edit']) && ctype_digit((string) $_GET['edit'])) {
-    $statement = $pdo->prepare('SELECT * FROM analises_solo WHERE id = :id');
-    $statement->execute(['id' => (int) $_GET['edit']]);
+    $scope = propriedadeScope('p');
+    $statement = $pdo->prepare(
+        'SELECT a.*
+         FROM analises_solo a
+         INNER JOIN talhoes t ON t.id = a.talhao_id
+         INNER JOIN propriedades p ON p.id = t.propriedade_id
+         WHERE a.id = :id AND ' . $scope['sql']
+    );
+    $statement->execute(['id' => (int) $_GET['edit']] + $scope['params']);
     $editing = $statement->fetch() ?: null;
 }
 
-$plots = $pdo->query(
+$scope = propriedadeScope('p');
+$plotsStatement = $pdo->prepare(
     'SELECT t.id, t.identificacao, p.nome AS propriedade_nome
      FROM talhoes t
      INNER JOIN propriedades p ON p.id = t.propriedade_id
+     WHERE ' . $scope['sql'] . '
      ORDER BY p.nome, t.identificacao'
-)->fetchAll();
-$analyses = $pdo->query(
+);
+$plotsStatement->execute($scope['params']);
+$plots = $plotsStatement->fetchAll();
+$analysesStatement = $pdo->prepare(
     'SELECT a.*, t.identificacao, p.nome AS propriedade_nome
      FROM analises_solo a
      INNER JOIN talhoes t ON t.id = a.talhao_id
      INNER JOIN propriedades p ON p.id = t.propriedade_id
+     WHERE ' . $scope['sql'] . '
      ORDER BY a.data_coleta DESC, p.nome, t.identificacao'
-)->fetchAll();
+);
+$analysesStatement->execute($scope['params']);
+$analyses = $analysesStatement->fetchAll();
 renderHeader($editing !== null ? 'Editar analise de solo' : 'Cadastrar analise de solo');
 ?>
 <form method="post" novalidate>
