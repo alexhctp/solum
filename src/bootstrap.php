@@ -97,9 +97,11 @@ function decimalInput(
     return $integer . '.' . str_pad($fraction, $scale, '0');
 }
 
-function renderHeader(string $title): void
+function renderHeader(string $title, bool $public = false): void
 {
     $flash = consumeFlash();
+    $loggedIn = !empty($_SESSION['usuario_id']);
+    $perfil = (string) ($_SESSION['perfil'] ?? '');
     ?>
     <!doctype html>
     <html lang="pt-BR">
@@ -110,8 +112,9 @@ function renderHeader(string $title): void
         <style>
             :root { color-scheme: light; font-family: system-ui, sans-serif; }
             body { max-width: 1180px; margin: 0 auto; padding: 1.5rem; color: #1f2937; background: #f5f7f4; }
-            nav { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+            nav { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: center; }
             nav a { color: #166534; font-weight: 600; }
+            nav .nav-user { margin-left: auto; font-weight: 400; color: #4b5563; }
             main { background: #fff; padding: 1.5rem; border: 1px solid #d1d5db; border-radius: .5rem; }
             form { display: grid; gap: 1rem; max-width: 760px; }
             .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
@@ -134,10 +137,16 @@ function renderHeader(string $title): void
     </head>
     <body>
         <nav aria-label="Navegacao principal">
-            <a href="dashboard.php">Painel de Gestão</a>
-            <a href="propriedades.php">Propriedades</a>
-            <a href="talhoes.php">Talhoes</a>
-            <a href="analises_solo.php">Analises de solo</a>
+            <?php if ($loggedIn && !$public): ?>
+                <a href="dashboard.php">Painel de Gestão</a>
+                <a href="cadastro_propriedade.php">Propriedades</a>
+                <?php if ($perfil === 'admin'): ?>
+                    <a href="cadastro_usuario.php">Usuarios</a>
+                <?php endif; ?>
+                <a href="talhoes.php">Talhoes</a>
+                <a href="analises_solo.php">Analises de solo</a>
+                <span class="nav-user"><?= e($_SESSION['usuario_nome'] ?? '') ?> (<?= e($perfil) ?>) · <a href="logout.php">Sair</a></span>
+            <?php endif; ?>
         </nav>
         <main>
             <h1><?= e($title) ?></h1>

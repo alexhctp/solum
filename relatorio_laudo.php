@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/src/bootstrap.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/src/InterpretadorSoloEngine.php';
 
 $analysisId = filter_input(INPUT_GET, 'analise_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -21,7 +21,7 @@ $statement = db()->prepare(
 );
 $statement->execute(['id' => $analysisId]);
 $analysis = $statement->fetch();
-if (!$analysis) {
+if (!$analysis || !userCanAccessAnalise(db(), $analysisId)) {
     http_response_code(404);
     exit('Analise nao encontrada.');
 }
@@ -88,7 +88,7 @@ renderHeader('Laudo de análise de solo');
         <div class="col-md-6"><div class="diagnostic border rounded p-3 h-100"><h3 class="h6">4. P</h3><p class="mb-0">Fósforo em <?= e($analysis['extrator_p']) ?>: <strong><?= e($analysis['p_mgdm3']) ?> mg/dm³</strong>. Classificação preliminar: <?= e($pStatus) ?>.</p></div></div>
         <div class="col-md-6"><div class="diagnostic border rounded p-3 h-100"><h3 class="h6">5. Matéria orgânica</h3><p class="mb-0">MO: <strong><?= e($analysis['mo_gdm3']) ?> g/dm³</strong>. Classificação preliminar: <?= e($moStatus) ?>.</p></div></div>
     </div>
-    <div class="recommendation rounded p-4 mt-4 page-break"><h2 class="section-title h5">Recomendações técnicas</h2><div class="row g-3"><div class="col-md-4"><h3 class="h6">Calagem</h3><p class="mb-0"><?= e($interpretation['parecer_tecnico']) ?></p></div><div class="col-md-4"><h3 class="h6">Gessagem</h3><p class="mb-0"><?= e($gessagem) ?></p></div><div class="col-md-4"><h3 class="h6">Adubação</h3><ul class="mb-0"><?php foreach ($adubacao as $item): ?><li><?= e($item) ?></li><?php endforeach; ?></ul></div></div><?php if ($interpretation['alertas'] !== []): ?><div class="alert alert-warning mt-3 mb-0"><strong>Alertas:</strong> <?= e(implode(' ', $interpretation['alertas'])) ?></div><?php endif; ?></div>
+    <div class="recommendation rounded p-4 mt-4 page-break"><h2 class="section-title h5">Recomendações técnicas</h2><div class="row g-3"><div class="col-md-4"><h3 class="h6">Calagem</h3><p class="mb-0"><?= e($interpretation['parecer_tecnico']) ?></p></div><div class="col-md-4"><h3 class="h6">Gessagem</h3><p class="mb-0"><?= e($gessagem) ?></p></div><div class="col-md-4"><h3 class="h6">Adubação</h3><ul class="mb-0"><?php foreach ($adubacao as $item): ?><li><?= e($item) ?></li><?php endforeach; ?></ul></div></div><section class="border-top mt-4 pt-3"><h3 class="h6">Prescrição Agronômica</h3><div class="row g-3"><div class="col-md-6"><div class="bg-white border rounded p-3"><h4 class="h6 mb-2">Calagem</h4><code>NC (t/ha) = CTC × (V alvo − V atual) / 100 × (100 / PRNT)</code></div></div><div class="col-md-6"><div class="bg-white border rounded p-3"><h4 class="h6 mb-2">Adubação</h4><code>Dose do nutriente (kg/ha) = (Demanda da cultura − Fornecimento do solo) / Eficiência de aproveitamento</code></div></div></div></section><?php if ($interpretation['alertas'] !== []): ?><div class="alert alert-warning mt-3 mb-0"><strong>Alertas:</strong> <?= e(implode(' ', $interpretation['alertas'])) ?></div><?php endif; ?></div>
     <p class="small text-secondary mt-4 mb-0">Referências gerais para triagem. A recomendação definitiva deve considerar cultura, produtividade esperada, textura, histórico de manejo, profundidade efetiva e tabelas regionais de interpretação.</p>
 </div>
 <?php renderFooter(); ?>

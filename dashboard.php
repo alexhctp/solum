@@ -2,17 +2,20 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/src/bootstrap.php';
+require_once __DIR__ . '/auth.php';
 
 $pdo = db();
+$scope = propriedadeScope('p');
+$perfil = currentPerfil();
 
-$totals = $pdo->query(
-    'SELECT
-        (SELECT COUNT(*) FROM propriedades) AS propriedades,
-        (SELECT COUNT(*) FROM talhoes) AS talhoes'
-)->fetch() ?: ['propriedades' => 0, 'talhoes' => 0];
+$totalsStmt = $pdo->prepare('SELECT COUNT(*) FROM propriedades p WHERE ' . $scope['sql']);
+$totalsStmt->execute($scope['params']);
+$totals = [
+    'propriedades' => (int) $totalsStmt->fetchColumn(),
+    'talhoes' => 0,
+];
 
-$latestAnalyses = $pdo->query(
+$latestStmt = $pdo->prepare(
     'SELECT a.*, t.identificacao, p.nome AS propriedade_nome, p.cidade, p.uf,
             ((a.ca_cmolc + a.mg_cmolc + (a.k_mgdm3 / 390)) + a.h_al_cmolc) AS ctc_pH7,
             ((a.ca_cmolc + a.mg_cmolc + (a.k_mgdm3 / 390)) /
@@ -28,8 +31,46 @@ $latestAnalyses = $pdo->query(
            AND (newer.data_coleta > a.data_coleta
                 OR (newer.data_coleta = a.data_coleta AND newer.id > a.id))
      )
+     AND ' . $scope['sql'] . '
      ORDER BY p.nome, t.identificacao'
-)->fetchAll();
+);
+$latestStmt->execute($scope['params']);
+$latestAnalyses = $latestStmt->fetchAll();
+
+$rbacUsers = [];
+$rbacClients = [];
+$rbacProperties = [];
+$rbacProfile = [];
+
+if ($perfil === 'admin') {
+    $rbacUsers = $pdo->query('SELECT id, nome, email, perfil FROM usuarios ORDER BY perfil, nome')->fetchAll();
+} elseif ($perfil === 'tecnico') {
+    $clientStmt = $pdo->prepare(
+        "SELECT u.id, u.nome, u.email, u.perfil
+         FROM usuarios u
+         INNER JOIN tecnico_cliente tc ON tc.cliente_id = u.id
+         WHERE tc.tecnico_id = :uid AND u.perfil = 'proprietario'
+         ORDER BY u.nome"
+    );
+    $clientStmt->execute(['uid' => currentUserId()]);
+    $rbacClients = $clientStmt->fetchAll();
+} else {
+    $profileStmt = $pdo->prepare(
+        'SELECT id, nome, email, perfil FROM usuarios WHERE id = :uid'
+    );
+    $profileStmt->execute(['uid' => currentUserId()]);
+    $rbacProfile = $profileStmt->fetch() ?: [];
+}
+
+$propertyStmt = $pdo->prepare(
+    'SELECT p.id, p.nome, p.cidade, p.uf, p.area_total, p.cultura_principal, u.nome AS proprietario_nome
+     FROM propriedades p
+     LEFT JOIN usuarios u ON u.id = p.proprietario_id
+     WHERE ' . $scope['sql'] . '
+     ORDER BY p.nome'
+);
+$propertyStmt->execute($scope['params']);
+$rbacProperties = $propertyStmt->fetchAll();
 
 $monitoredPlots = count($latestAnalyses);
 $criticalPlots = 0;
@@ -80,6 +121,55 @@ renderHeader('Painel de Gestão de fertilidade');
         <div><span class="text-success fw-semibold">MONITORAMENTO</span><h1 class="display-6 fw-bold mb-1">Saúde do solo</h1><p class="text-secondary mb-0">Visão consolidada das análises mais recentes por talhão.</p></div>
         <a class="btn btn-success" href="analises_solo.php">Nova análise</a>
     </div>
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5">Escopo do perfil: <?= e($perfil) ?></h2>
+            <?php if ($perfil === 'admin'): ?>
+                <h3 class="h6 mt-3">Usuarios, tecnicos e clientes</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($rbacUsers as $user): ?>
+                            <tr><td><?= e($user['nome']) ?></td><td><?= e($user['email']) ?></td><td><?= e($user['perfil']) ?></td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php elseif ($perfil === 'tecnico'): ?>
+                <h3 class="h6 mt-3">Clientes associados</h3>
+                <?php if ($rbacClients === []): ?>
+                    <p class="text-secondary mb-0">Nenhum cliente vinculado a este tecnico.</p>
+                <?php else: ?>
+                    <ul class="mb-0">
+                        <?php foreach ($rbacClients as $client): ?>
+                            <li><?= e($client['nome']) ?> — <?= e($client['email']) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            <?php else: ?>
+                <h3 class="h6 mt-3">Meus dados</h3>
+                <p class="mb-0"><?= e($rbacProfile['nome'] ?? '') ?> — <?= e($rbacProfile['email'] ?? '') ?></p>
+            <?php endif; ?>
+            <h3 class="h6 mt-4">Propriedades no seu escopo</h3>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Propriedade</th><th>Proprietario</th><th>Local</th><th>Area (ha)</th><th>Cultura</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($rbacProperties as $property): ?>
+                        <tr>
+                            <td><?= e($property['nome']) ?></td>
+                            <td><?= e($property['proprietario_nome'] ?? '-') ?></td>
+                            <td><?= e($property['cidade']) ?>/<?= e($property['uf']) ?></td>
+                            <td><?= e($property['area_total']) ?></td>
+                            <td><?= e($property['cultura_principal'] ?? '-') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4"><div class="card kpi h-100"><div class="card-body"><div class="text-secondary">Propriedades</div><div class="value text-success"><?= e($totals['propriedades']) ?></div><small>cadastradas no sistema</small></div></div></div>
         <div class="col-12 col-md-4"><div class="card kpi h-100"><div class="card-body"><div class="text-secondary">Talhões monitorados</div><div class="value text-success"><?= e($monitoredPlots) ?></div><small>com pelo menos uma análise</small></div></div></div>

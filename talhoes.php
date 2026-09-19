@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/src/bootstrap.php';
+require_once __DIR__ . '/auth.php';
 
 $pdo = db();
 $errors = [];
@@ -15,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = postId('id', $errors, 'um identificador valido');
         if ($id !== null) {
+            if (!userCanAccessTalhao($pdo, $id)) {
+                denyAccess();
+            }
             $statement = $pdo->prepare('DELETE FROM talhoes WHERE id = :id');
             $statement->execute(['id' => $id]);
             flash('success', 'Talhao excluido.');
@@ -39,10 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($errors === []) {
-            $propertyCheck = $pdo->prepare('SELECT id FROM propriedades WHERE id = :id');
-            $propertyCheck->execute(['id' => $propriedadeId]);
-            if (!$propertyCheck->fetchColumn()) {
+            if (!userCanAccessProperty($pdo, $talhaoId === null ? 0 : (int) $propriedadeId)) {
                 $errors['propriedade_id'] = 'A propriedade selecionada nao existe.';
+            }
+        }
+
+        if ($id !== '' && ctype_digit($id) && (int) $id > 0 && $errors === []) {
+            if (!userCanAccessTalhao($pdo, (int) $id)) {
+                denyAccess();
             }
         }
 
